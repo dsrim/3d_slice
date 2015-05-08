@@ -1,7 +1,7 @@
 
 import os, sys
 import numpy as np
-
+import pdb
 
 def read_clawfile(path,filename):
     # read ascii text file and output as string
@@ -10,8 +10,23 @@ def read_clawfile(path,filename):
         data_str = data.read()
     return data_str
 
-def dictionarize(data_str):
+def dict_strval_append(data_dict,key,val):
+    if key in data_dict:
+        data_dict[key] += ' ' + val
+    else:
+        data_dict[key] = val
+    return data_dict
+
+def dict_strval_merge(all_data_dict,new_dict):
+    for key,val in new_dict.items():
+        all_data_dict = dict_strval_append(all_data_dict,key,val)
+    return all_data_dict
+
+
+def dictionarize(data_str,claw_file):
     # dictionarize string data from clawpack output
+    # if duplicate entry appears, append to end of val-string 
+    #   (e.g in slices.data x,y,z redefined all rows)
     data_dict = {}
     if '=:' in data_str:
         vprint('\t(dictionarize) this must be a .data file')
@@ -20,9 +35,17 @@ def dictionarize(data_str):
             split_line = line.split('=:')
             if len(split_line) < 2:
                 continue
-            attr = split_line[1].replace(' ','')
+            key = split_line[1].replace(' ','')
             val = split_line[0]
-            data_dict[attr] = val
+            dict_strval_append(data_dict,key,val)
+    elif ('grid_number' in data_str) and ('AMR_level' in data_str):
+        vprint('\t(dictionarize) this must be sol-state q data')
+        dict_strval_append(data_dict,'q',claw_file)
+    elif 'time' in data_str:
+        vprint('\t(dictionarize) this must be sol-time t data')
+        dict_strval_append(data_dict,'t',claw_file)
+    else:
+        vprint('\t(dictionarize) !! empty or unexpected file: ' + claw_file)
     return data_dict
 
 def process_dir(path):
@@ -33,13 +56,12 @@ def process_dir(path):
         if not claw_file.startswith('.'):
             vprint('(process_dir) looking at: ' + claw_file)
             claw_data_str = read_clawfile(path,claw_file)
-            new_dict = dictionarize(claw_data_str)
-            all_data_dict.update(new_dict)
+            new_dict = dictionarize(claw_data_str,claw_file)
+            all_data_dict = dict_strval_merge(all_data_dict,new_dict)
     return all_data_dict
 
 def output_time_ticks(all_data_dict):
-    # returns time ticks
-    # depending on output_style chosen
+    # returns time ticks, dep on output_style 
     if int(all_data_dict['output_style']) == 1:
         t0 = float(all_data_dict['t0'])
         tN = float(all_data_dict['tfinal'])
@@ -50,11 +72,29 @@ def output_time_ticks(all_data_dict):
             t_ticks = t_ticks[1:]
     return t_ticks
 
+def output_slices_spec(all_data_dict):
+    # outputs specifications needed for slice plots
+    slices_spec_dict = {}
+    key_list_nslices = ['nslices_yz','nslices_xz','nslices_xy']
+    for key in key_list_nslices:
+        slices_spec_dict[key] = int(all_data_dict[key])
+    key_list_translates = ['x','y','z']
+    for key in key_list_translates:
+        slice_translates = map(float,all_data_dict[key].split())
+        slices_spec_dict[key] = np.array(slice_translates)
+    # check of nslices_* matches length of translates_list
+    for j in range(len(key_list_translates)):
+        if slices_spec_dict[key_list_nslices[j]] == len(slices_spec_dict[key_list_translates[j]]):
+            vprint('\t\t(output_slices_spec) nslices correct.')
+        else:
+            vprint('\t\t(output_slices_spec) nslices incorrect.')
+    return slices_spec_dict
 
-def slices_plot_specs(all_data_dict):
-    plot_specs_dict = {}
-    plot_specs_dict['t_ticks'] = output_time_ticks(all_data_dict)
-    return plot_specs_dict
+def slices_plot_spec(all_data_dict):
+    plot_spec_dict = {}
+    plot_spec_dict['t_ticks'] = output_time_ticks(all_data_dict)
+    plot_spec_dict.update(output_slices_spec(all_data_dict))
+    return plot_spec_dict
 
 # verbose switch
 verbose = True
@@ -71,4 +111,4 @@ for key,value in all_data_dict.items():
     vprint(key)
     vprint('\t' + value)
 
-plot_specs_dict = slices_plot_specs(all_data_dict)
+plot_specs_dict = slices_plot_spec(all_data_dict)
