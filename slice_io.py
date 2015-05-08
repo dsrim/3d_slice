@@ -52,6 +52,7 @@ def process_dir(path):
     # do read_clawfile + dictionarize over all files in directory
     file_list = os.listdir(path)
     all_data_dict = {}
+    all_data_dict['path'] = path
     for claw_file in file_list:
         if not claw_file.startswith('.'):
             vprint('(process_dir) looking at: ' + claw_file)
@@ -113,7 +114,60 @@ def slices_plot_spec(all_data_dict):
     plot_spec_dict['t_ticks'] = output_time_ticks(all_data_dict)
     plot_spec_dict.update(output_slices_spec(all_data_dict))
     plot_spec_dict['slice_view'],plot_spec_dict['time_view'] = output_slice_view(all_data_dict)
+    plot_spec_dict['path'] = all_data_dict['path']
     return plot_spec_dict
+
+def plot_time_all(plot_specs_dict):
+    # make 3d slice plot in time-sequential order
+    for key,value in plot_specs_dict['time_view'].items():
+        t = plot_specs_dict['t_ticks'][key]
+        path = plot_specs_dict['path']
+        plot_time_instance(path,t,value)
+    return
+
+def plot_time_instance(path,t,value):
+    # make one plot at fixed time with multiple slices
+    file_list = value.split()
+    for file_name in file_list:
+        plot_slice(path,file_name)
+    return
+
+def plot_slice(path,file_name):
+    # plot one slice
+    patch_specs_list,patch_array_list = read_patch_list(path,file_name)
+    vprint(file_name)
+    vprint(patch_specs_list)
+    for patch_specs in patch_specs_list:
+        mx = int(patch_specs[1])
+        my = int(patch_specs[2])
+        xlow = float(patch_specs[3])
+        ylow = float(patch_specs[4])
+        dx = float(patch_specs[5])
+        dy = float(patch_specs[6])
+    return
+
+def read_patch_list(path,file_name):
+    # import data from ascii output, patch-wise order
+    import re
+
+    patch_specs_list = []
+    patch_array_list = []
+    slice_txt_str = read_clawfile(path,file_name)
+    slice_patch_data_list = re.split('\n?\s{2,}[0-9]{1,4}\s{15,}grid_number',slice_txt_str)
+    for slice_patch_data in slice_patch_data_list:
+        slice_patch_data_split = slice_patch_data.split()
+        if len(slice_patch_data_split) < 1:
+            continue
+        patch_specs = slice_patch_data_split[0:14:2]
+        patch_specs_list.append(patch_specs)
+        patch_data = map(float,slice_patch_data_split[14:])
+        mx = int(patch_specs[1])
+        my = int(patch_specs[2])
+        num_states = len(patch_data)/(mx*my)
+        # reshape will cause error if exists missing values
+        patch_array = np.array(patch_data).reshape(mx,my)
+        patch_array_list.append(patch_array)
+    return patch_specs_list,patch_array
 
 # verbose switch
 verbose = True
@@ -131,7 +185,5 @@ for key,value in all_data_dict.items():
     vprint('\t' + value)
 
 plot_specs_dict = slices_plot_spec(all_data_dict)
-
-for key,value in plot_specs_dict['time_view'].items():
-    t = plot_specs_dict['t_ticks'][key]
+plot_time_all(plot_specs_dict)
 
