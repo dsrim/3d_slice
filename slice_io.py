@@ -98,15 +98,19 @@ def output_slice_view(all_data_dict):
     slice_view_dict = {}
     time_view_dict = {}
     sol_file_list = all_data_dict['q'].split()
-    orient_dict = {'xy':'z', 'yz':'x','xz':'z'}
     for sol_file in sol_file_list:
-        normal = orient_dict[sol_file[6:8]]
-        m_slice = int(sol_file[8])-1
-        num_t_tick = int(sol_file[11:])
-        translate = float(all_data_dict[normal].split()[m_slice])
+        normal,m_slice,num_t_tick,translate = q_output_name_read(sol_file,all_data_dict)
         slice_view_dict = dict_strval_append(slice_view_dict,(normal,translate),sol_file)
         time_view_dict = dict_strval_append(time_view_dict,num_t_tick,sol_file)
     return slice_view_dict,time_view_dict
+
+def q_output_name_read(sol_file,all_data_dict):
+    orient_dict = {'xy':'z', 'yz':'x','xz':'z'}
+    normal = orient_dict[sol_file[6:8]]
+    m_slice = int(sol_file[8])-1
+    num_t_tick = int(sol_file[11:])
+    translate = float(all_data_dict[normal].split()[m_slice])
+    return normal,m_slice,num_t_tick,translate
 
 def slices_plot_spec(all_data_dict):
     plot_spec_dict = {}
@@ -134,16 +138,30 @@ def plot_time_instance(path,t,value):
 
 def plot_slice(path,file_name):
     # plot one slice
+    orient_dict = {'x':[2,3,1],'y':[1,3,2], 'z':[1,2,3]}
     patch_specs_list,patch_array_list = read_patch_list(path,file_name)
-    vprint(file_name)
-    vprint(patch_specs_list)
+    normal,m_slice,num_t_tick,translate = q_output_name_read(file_name,all_data_dict)
     for patch_specs in patch_specs_list:
-        mx = int(patch_specs[1])
-        my = int(patch_specs[2])
-        xlow = float(patch_specs[3])
-        ylow = float(patch_specs[4])
-        dx = float(patch_specs[5])
-        dy = float(patch_specs[6])
+        m1 = int(patch_specs[1])
+        m2 = int(patch_specs[2])
+        xi1lo = float(patch_specs[3])
+        xi2lo = float(patch_specs[4])
+        d1 = float(patch_specs[5])
+        d2 = float(patch_specs[6])
+        xi1lo_c = xi1lo + d1/2 # _c for "center"
+        xi1hi_c = xi1lo_c + d1*m1
+        xi2lo_c = xi2lo + d2/2
+        xi2hi_c = xi2lo_c + d2*m2
+        translate_lo = translate - 1e-3
+        translate_hi = translate + 1e-3
+        axis4slice = []
+        xi1 = np.linspace(xi1lo_c,xi1hi_c,m1)
+        xi2 = np.linspace(xi2lo_c,xi2hi_c,m2)
+        tr = np.linspace(translate_lo,translate_hi,2)
+        axis4slice.insert(orient_dict[normal][0],xi1)
+        axis4slice.insert(orient_dict[normal][1],xi2)
+        axis4slice.insert(orient_dict[normal][2],tr)
+        x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
     return
 
 def read_patch_list(path,file_name):
