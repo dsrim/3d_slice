@@ -67,7 +67,7 @@ def output_time_ticks(all_data_dict):
         tN = float(all_data_dict['tfinal'])
         num_output_times = int(all_data_dict['num_output_times'])
         output_t0 = bool('T' in all_data_dict['output_t0'])
-        t_ticks = np.linspace(t0,tN,num_output_times)
+        t_ticks = np.linspace(t0,tN,num_output_times+1)
         if not output_t0:
             t_ticks = t_ticks[1:]
     return t_ticks
@@ -82,18 +82,37 @@ def output_slices_spec(all_data_dict):
     for key in key_list_translates:
         slice_translates = map(float,all_data_dict[key].split())
         slices_spec_dict[key] = np.array(slice_translates)
-    # check of nslices_* matches length of translates_list
-    for j in range(len(key_list_translates)):
-        if slices_spec_dict[key_list_nslices[j]] == len(slices_spec_dict[key_list_translates[j]]):
-            vprint('\t\t(output_slices_spec) nslices correct.')
-        else:
-            vprint('\t\t(output_slices_spec) nslices incorrect.')
     return slices_spec_dict
+
+def output_cube_range(all_data_dict):
+    # outputs corners of the cube domain
+    domain_spec_list = []
+    domain_lower_list = np.array(map(float, all_data_dict['lower'].split()))
+    domain_upper_list = np.array(map(float, all_data_dict['upper'].split()))
+    for j in range(3):
+        domain_spec_list.append((domain_lower_list[j],domain_upper_list[j]))
+    return domain_spec_list
+
+def output_slice_view(all_data_dict):
+    slice_view_dict = {}
+    time_view_dict = {}
+    sol_file_list = all_data_dict['q'].split()
+    orient_dict = {'xy':'z', 'yz':'x','xz':'z'}
+    for sol_file in sol_file_list:
+        normal = orient_dict[sol_file[6:8]]
+        m_slice = int(sol_file[8])-1
+        num_t_tick = int(sol_file[11:])
+        translate = float(all_data_dict[normal].split()[m_slice])
+        slice_view_dict = dict_strval_append(slice_view_dict,(normal,translate),sol_file)
+        time_view_dict = dict_strval_append(time_view_dict,num_t_tick,sol_file)
+    return slice_view_dict,time_view_dict
 
 def slices_plot_spec(all_data_dict):
     plot_spec_dict = {}
+    plot_spec_dict['domain'] = output_cube_range(all_data_dict)
     plot_spec_dict['t_ticks'] = output_time_ticks(all_data_dict)
     plot_spec_dict.update(output_slices_spec(all_data_dict))
+    plot_spec_dict['slice_view'],plot_spec_dict['time_view'] = output_slice_view(all_data_dict)
     return plot_spec_dict
 
 # verbose switch
@@ -112,3 +131,7 @@ for key,value in all_data_dict.items():
     vprint('\t' + value)
 
 plot_specs_dict = slices_plot_spec(all_data_dict)
+
+for key,value in plot_specs_dict['time_view'].items():
+    t = plot_specs_dict['t_ticks'][key]
+
