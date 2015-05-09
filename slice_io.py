@@ -139,6 +139,7 @@ def plot_time_instance(path,t,value):
 def plot_slice(path,file_name):
     # plot one slice
     from mayavi import mlab
+
     orient_dict = {'x':[2,3,1],'y':[1,3,2], 'z':[1,2,3]}
     patch_specs_list,patch_array_list = read_patch_list(path,file_name)
     normal,m_slice,num_t_tick,translate = q_output_name_read(file_name,all_data_dict)
@@ -163,7 +164,7 @@ def plot_slice(path,file_name):
         axis4slice.insert(orient_dict[normal][1],xi2)
         axis4slice.insert(orient_dict[normal][2],tr)
         x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
-        src = mlab.piplines.scalar_field(x,y,z,np.repeat([np.patch_array[k]],2,axis=0))
+        src = mlab.pipline.scalar_field(x,y,z,np.repeat([np.patch_array[k]],2,axis=0))
     return
 
 def read_patch_list(path,file_name):
