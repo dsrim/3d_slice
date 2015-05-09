@@ -1,7 +1,18 @@
 
 import os, sys
 import numpy as np
-import pdb
+
+# verbose switch
+verbose = True
+if verbose:
+    def vprint(*args):
+        for arg in args:
+            print(arg)
+else:
+    vprint = lambda *a: None
+
+
+
 
 def read_clawfile(path,filename):
     # read ascii text file and output as string
@@ -105,81 +116,12 @@ def output_slice_view(all_data_dict):
     return slice_view_dict,time_view_dict
 
 def q_output_name_read(sol_file,all_data_dict):
-    orient_dict = {'xy':'z', 'yz':'x','xz':'z'}
+    orient_dict = {'xy':'z', 'yz':'x','xz':'y'}
     normal = orient_dict[sol_file[6:8]]
     m_slice = int(sol_file[8])-1
     num_t_tick = int(sol_file[11:])
     translate = float(all_data_dict[normal].split()[m_slice])
     return normal,m_slice,num_t_tick,translate
-
-def slices_plot_spec(all_data_dict):
-    plot_spec_dict = {}
-    plot_spec_dict['domain'] = output_cube_range(all_data_dict)
-    plot_spec_dict['t_ticks'] = output_time_ticks(all_data_dict)
-    plot_spec_dict.update(output_slices_spec(all_data_dict))
-    plot_spec_dict['slice_view'],plot_spec_dict['time_view'] = output_slice_view(all_data_dict)
-    plot_spec_dict['path'] = all_data_dict['path']
-    return plot_spec_dict
-
-def plot_time_all(plot_specs_dict):
-    # make 3d slice plot in time-sequential order
-    for key,value in plot_specs_dict['time_view'].items():
-        t = plot_specs_dict['t_ticks'][key]
-        path = plot_specs_dict['path']
-        plot_time_instance(path,t,value)
-    return
-
-def plot_time_instance(path,t,value):
-    # make one plot at fixed time with multiple slices
-    file_list = value.split()
-    for file_name in file_list:
-        plot_slice(path,file_name)
-    return
-
-def plot_slice(path,file_name):
-    # plot one slice
-    from mayavi import mlab
-
-    patch_specs_list,patch_array_list = read_patch_list(path,file_name)
-    normal,m_slice,num_t_tick,translate = q_output_name_read(file_name,all_data_dict)
-    orient_dict = {'x':[2,3,1],'y':[1,3,2], 'z':[1,2,3]}
-    orient_real = orient_dict[normal]
-    src_list = []
-    for k,patch_specs in enumerate(patch_specs_list):
-        m1 = int(patch_specs[1])
-        m2 = int(patch_specs[2])
-        xi1lo = float(patch_specs[3])
-        xi2lo = float(patch_specs[4])
-        d1 = float(patch_specs[5])
-        d2 = float(patch_specs[6])
-        xi1lo_c = xi1lo + d1/2 # _c for "center"
-        xi1hi_c = xi1lo_c + d1*m1
-        xi2lo_c = xi2lo + d2/2
-        xi2hi_c = xi2lo_c + d2*m2
-        translate_lo = translate - 1e-3
-        translate_hi = translate + 1e-3
-        axis4slice = []
-        xi1 = np.linspace(xi1lo_c,xi1hi_c,m1)
-        xi2 = np.linspace(xi2lo_c,xi2hi_c,m2)
-        tr = np.linspace(translate_lo,translate_hi,2)
-        axis4slice.insert(orient_real[0],xi1)
-        axis4slice.insert(orient_real[1],xi2)
-        axis4slice.insert(orient_real[2],tr)
-        m_real = []
-        m_real.insert(orient_real[0],m1)
-        m_real.insert(orient_real[1],m2)
-        m_real.insert(orient_real[2],1)
-        x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
-	s = patch_array_list[k].reshape(m_real[0],m_real[1],m_real[2]).repeat(2,axis=mreal[2])
-        src_list.append(mlab.pipeline.scalar_field(x,y,z,s))
-
-    axis_str = normal + '_axes'
-    for src in src_list:
-        yp = mlab.pipeline.scalar_cut_plane(src, plane_orientation=axis_str,opacity=0.5,colormap='hot')
-        tr_vec = np.zeros(3)
-        tr_vec[orient_real[2]] = translate
-        yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
-    return
 
 def read_patch_list(path,file_name):
     # import data from ascii output, patch-wise order
@@ -200,25 +142,9 @@ def read_patch_list(path,file_name):
         my = int(patch_specs[2])
         num_states = len(patch_data)/(mx*my)
         # reshape will cause error if exists missing values
-        patch_array = np.array(patch_data).reshape(mx,my)
+        #patch_array = np.array(patch_data).reshape(mx,my)
+        patch_array = np.array(patch_data)
         patch_array_list.append(patch_array)
     return patch_specs_list,patch_array_list
 
-# verbose switch
-verbose = True
-if verbose:
-    def vprint(*args):
-        for arg in args:
-            print(arg)
-else:
-    vprint = lambda *a: None
-
-
-all_data_dict = process_dir('./_output')
-for key,value in all_data_dict.items():
-    vprint(key)
-    vprint('\t' + value)
-
-plot_specs_dict = slices_plot_spec(all_data_dict)
-plot_time_all(plot_specs_dict)
 
