@@ -141,8 +141,10 @@ def plot_slice(path,file_name):
     from mayavi import mlab
 
     orient_dict = {'x':[2,3,1],'y':[1,3,2], 'z':[1,2,3]}
+    orient_real = orient_dict[normal]
     patch_specs_list,patch_array_list = read_patch_list(path,file_name)
     normal,m_slice,num_t_tick,translate = q_output_name_read(file_name,all_data_dict)
+    src_list = []
     for k,patch_specs in enumerate(patch_specs_list):
         m1 = int(patch_specs[1])
         m2 = int(patch_specs[2])
@@ -160,13 +162,20 @@ def plot_slice(path,file_name):
         xi1 = np.linspace(xi1lo_c,xi1hi_c,m1)
         xi2 = np.linspace(xi2lo_c,xi2hi_c,m2)
         tr = np.linspace(translate_lo,translate_hi,2)
-        axis4slice.insert(orient_dict[normal][0],xi1)
-        axis4slice.insert(orient_dict[normal][1],xi2)
-        axis4slice.insert(orient_dict[normal][2],tr)
+        axis4slice.insert(orient_real[0],xi1)
+        axis4slice.insert(orient_real[1],xi2)
+        axis4slice.insert(orient_real[2],tr)
         x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
 	pdb.set_trace()
 	s = patch_array_list[k].reshape(40,40,1).repeat(2,axis=2)
-        src = mlab.pipeline.scalar_field(x,y,z,s)
+        src_list.append(mlab.pipeline.scalar_field(x,y,z,s))
+
+    axis_str = normal + '_axes'
+    for src in src_list:
+        yp = mlab.pipeline.scalar_cut_plane(src, plane_orientation=axis_str,opacity=0.5,colormap='hot')
+        tr_vec = np.zeros(3)
+        translate_vector[orient_real[2]] = translate
+        yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
     return
 
 def read_patch_list(path,file_name):
