@@ -165,16 +165,19 @@ def plot_slice(path,file_name):
         axis4slice.insert(orient_real[0],xi1)
         axis4slice.insert(orient_real[1],xi2)
         axis4slice.insert(orient_real[2],tr)
+        m_real = []
+        m_real.insert(orient_real[0],m1)
+        m_real.insert(orient_real[1],m2)
+        m_real.insert(orient_real[2],1)
         x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
-	pdb.set_trace()
-	s = patch_array_list[k].reshape(40,40,1).repeat(2,axis=2)
+	s = patch_array_list[k].reshape(m_real[0],m_real[1],m_real[2]).repeat(2,axis=mreal[2])
         src_list.append(mlab.pipeline.scalar_field(x,y,z,s))
 
     axis_str = normal + '_axes'
     for src in src_list:
         yp = mlab.pipeline.scalar_cut_plane(src, plane_orientation=axis_str,opacity=0.5,colormap='hot')
         tr_vec = np.zeros(3)
-        translate_vector[orient_real[2]] = translate
+        tr_vec[orient_real[2]] = translate
         yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
     return
 
