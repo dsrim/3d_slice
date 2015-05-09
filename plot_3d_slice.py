@@ -54,8 +54,8 @@ def plot_slice(path,file_name,f):
         xi1hi_c = xi1lo_c + d1*m1
         xi2lo_c = xi2lo + d2/2
         xi2hi_c = xi2lo_c + d2*m2
-        translate_lo = translate - 1e-3
-        translate_hi = translate + 1e-3
+        translate_lo = translate - 1e-4
+        translate_hi = translate + 1e-4
         axis4slice = []
         xi1 = np.linspace(xi1lo_c,xi1hi_c,m1)
         xi2 = np.linspace(xi2lo_c,xi2hi_c,m2)
