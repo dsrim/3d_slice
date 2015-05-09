@@ -164,7 +164,7 @@ def plot_slice(path,file_name):
         axis4slice.insert(orient_dict[normal][1],xi2)
         axis4slice.insert(orient_dict[normal][2],tr)
         x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
-        src = mlab.pipline.scalar_field(x,y,z,np.repeat([np.patch_array[k]],2,axis=0))
+        src = mlab.pipeline.scalar_field(x,y,z,np.repeat([np.patch_array[k]],2,axis=0))
     return
 
 def read_patch_list(path,file_name):
