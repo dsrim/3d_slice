@@ -164,7 +164,9 @@ def plot_slice(path,file_name):
         axis4slice.insert(orient_dict[normal][1],xi2)
         axis4slice.insert(orient_dict[normal][2],tr)
         x,y,z = np.meshgrid(axis4slice[0],axis4slice[1],axis4slice[2])
-        src = mlab.pipeline.scalar_field(x,y,z,np.repeat([patch_array[k]],2,axis=0))
+	pdb.set_trace()
+	s = patch_array_list[k].reshape(40,40,1).repeat(2,axis=2)
+        src = mlab.pipeline.scalar_field(x,y,z,s)
     return
 
 def read_patch_list(path,file_name):
@@ -188,7 +190,7 @@ def read_patch_list(path,file_name):
         # reshape will cause error if exists missing values
         patch_array = np.array(patch_data).reshape(mx,my)
         patch_array_list.append(patch_array)
-    return patch_specs_list,patch_array
+    return patch_specs_list,patch_array_list
 
 # verbose switch
 verbose = True
