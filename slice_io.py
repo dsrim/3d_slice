@@ -89,11 +89,14 @@ def output_slices_spec(all_data_dict):
     slices_spec_dict = {}
     key_list_nslices = ['nslices_yz','nslices_xz','nslices_xy']
     for key in key_list_nslices:
-        slices_spec_dict[key] = int(all_data_dict[key])
+        if key in all_data_dict:
+            slices_spec_dict[key] = int(all_data_dict[key])
+
     key_list_translates = ['x','y','z']
     for key in key_list_translates:
-        slice_translates = map(float,all_data_dict[key].split())
-        slices_spec_dict[key] = np.array(slice_translates)
+        if key in all_data_dict:
+            slice_translates = map(float,all_data_dict[key].split())
+            slices_spec_dict[key] = np.array(slice_translates)
     return slices_spec_dict
 
 def output_cube_range(all_data_dict):

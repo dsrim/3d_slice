@@ -97,9 +97,11 @@ else:
 
 
 all_data_dict = slice_io.process_dir('./_output')
+vprint('listing all variables: ')
 for key,value in all_data_dict.items():
     vprint(key)
     vprint('\t' + value)
+vprint('= done')
 
 
 plot_specs_dict = slices_plot_spec(all_data_dict)
