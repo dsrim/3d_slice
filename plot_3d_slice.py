@@ -127,7 +127,7 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         q_sol = patch_array_list[k][var_num::num_eqn].reshape(m_real[0],m_real[1],m_real[2],order='F')
         q_sol = q_sol.repeat(2,axis=orient_ord[normal])
 
-        objname = orient_plane[normal] + '_' + str(k)
+        objname = orient_plane[normal] + '_' + str(translate) + '_' + str(k) 
         src_list.append(mlab.pipeline.scalar_field(x,y,z,q_sol,name = objname))
 
 
