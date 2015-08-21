@@ -88,6 +88,7 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
     normal,m_slice,num_t_tick,translate = slice_io.q_output_name_read(file_name,all_data_dict)
     orient_dict = {'x':[1,2,0],'y':[0,2,1], 'z':[0,1,2]}
     orient_ord = {'x':0, 'y':1, 'z':2}
+    orient_plane = {'x':'yz', 'y':'xz', 'z':'xy'}
     orient_real = orient_dict[normal]
     src_list = []
     mesh_list = []
@@ -126,7 +127,8 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         q_sol = patch_array_list[k][var_num::num_eqn].reshape(m_real[0],m_real[1],m_real[2],order='F')
         q_sol = q_sol.repeat(2,axis=orient_ord[normal])
 
-        src_list.append(mlab.pipeline.scalar_field(x,y,z,q_sol))
+        objname = orient_plane[normal] + '_' + str(k)
+        src_list.append(mlab.pipeline.scalar_field(x,y,z,q_sol,name = objname))
 
 
     color_choice = 'Spectral'
