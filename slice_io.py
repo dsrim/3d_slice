@@ -55,6 +55,9 @@ def dictionarize(data_str,claw_file):
     elif 'time' in data_str:
         vprint('\t(dictionarize) this must be sol-time t data')
         dict_strval_append(data_dict,'t',claw_file)
+        if 'slice' in claw_file:
+            time_str = data_str.split('\n')[0].split()[0]
+            dict_strval_append(data_dict,'all_time',time_str)
     else:
         vprint('\t(dictionarize) !! empty or unexpected file: ' + claw_file)
     return data_dict
@@ -82,6 +85,11 @@ def output_time_ticks(all_data_dict):
         t_ticks = np.linspace(t0,tN,num_output_times+1)
         if not output_t0:
             t_ticks = t_ticks[1:]
+    else:
+        # not very robust, is it?
+        t_ticks_str = list(set(all_data_dict['all_time'].split()))
+        t_ticks = np.sort([float(a) for a in t_ticks_str])
+         
     return t_ticks
 
 def output_slices_spec(all_data_dict):
@@ -105,7 +113,7 @@ def output_cube_range(all_data_dict):
     domain_lower_list = np.array(map(float, all_data_dict['lower'].split()))
     domain_upper_list = np.array(map(float, all_data_dict['upper'].split()))
     for j in range(3):
-        domain_spec_list.append((domain_lower_list[j],domain_upper_list[j]))
+        domain_spec_list.append([domain_lower_list[j],domain_upper_list[j]])
     return domain_spec_list
 
 def output_slice_view(all_data_dict):
@@ -120,10 +128,11 @@ def output_slice_view(all_data_dict):
 
 def q_output_name_read(sol_file,all_data_dict):
     orient_dict = {'xy':'z', 'yz':'x','xz':'y'}
-    normal = orient_dict[sol_file[6:8]]
-    m_slice = int(sol_file[8])-1
-    num_t_tick = int(sol_file[11:])
-    translate = float(all_data_dict[normal].split()[m_slice])
+    if sol_file[0:6] == 'slice_':
+        normal = orient_dict[sol_file[6:8]]
+        m_slice = int(sol_file[8])-1
+        num_t_tick = int(sol_file[11:])
+        translate = float(all_data_dict[normal].split()[m_slice])
     return normal,m_slice,num_t_tick,translate
 
 def read_patch_list(path,file_name):
