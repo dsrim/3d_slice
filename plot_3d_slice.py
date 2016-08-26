@@ -52,7 +52,8 @@ def compute_minmax(path,t,value,var_num,plot_specs_dict):
 def plot_time_instance(path,t,value,var_num,plot_specs_dict):
     # make one plot at fixed time with multiple slices
 
-    f = mlab.figure(size=(2000,1500))
+    #f = mlab.figure(size=(2000,1500))
+    f = mlab.figure(size=(400,300))
     file_list = value.split()
     num_eqn = int(plot_specs_dict['num_eqn'])
     
@@ -60,7 +61,6 @@ def plot_time_instance(path,t,value,var_num,plot_specs_dict):
     maxval = plot_specs_dict['maxval'][var_num]
     for file_name in file_list:
         plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval)
-    save_filename = 'test_output_' + str(t) + '.png'
     mlab.title('Solution at t=' + str(t) + '\n q ' + str(var_num+1),\
                 size=0.25)
     cube_range = [plot_specs_dict['domain'][0][0],  
@@ -74,8 +74,17 @@ def plot_time_instance(path,t,value,var_num,plot_specs_dict):
     mlab.outline(line_width=0.02)
     #f.scene.x_minus_view()
 
-    #f.scene._update_view(1, -1, 1, 0, 0, 0)
-    mlab.savefig(save_filename)
+    binary_list = [-1,1]
+    for j in binary_list:
+        for k in binary_list:
+            for l in binary_list:
+                f.scene._update_view(j, k, l, 0, 0, 0)
+                save_filename = 'test_output_' + str(j) + '_'\
+                                               + str(k) + '_'\
+                                               + str(l) + '_'\
+                                               + str(t) + '.png'
+                mlab.show()
+                #mlab.savefig(save_filename)
     f.scene.close()
     return None
 
@@ -146,7 +155,9 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         #tr2 = np.linspace(translate_lo2,translate_hi2,2)
         for tr2val in [translate_lo2, translate_hi2]:
             tr2 = np.array(tr2val)
-            grids = permute_orientation(orient_real,[u,v,tr2]) 
+            u1 = np.linspace(ulo,ulo + m1*d1,m1 + 1)
+            v1 = np.linspace(vlo,vlo + m2*d2,m2 + 1)
+            grids = permute_orientation(orient_real,[u1,v1,tr2]) 
             m_real = permute_orientation(orient_real,[m1,m2,1])
             x,y,z = np.meshgrid(grids[0],grids[1],grids[2],indexing='ij')
         
@@ -159,7 +170,7 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         
             sg = tvtk.StructuredGrid(dimensions=x.shape, points=pts)
             d = mlab.pipeline.add_dataset(sg)
-            g1 = mlab.pipeline.grid_plane(d, line_width=0.25)
+            g1 = mlab.pipeline.grid_plane(d, line_width=0.25,color=(0,0,0))
             g1.grid_plane.axis = normal
 
 
@@ -178,8 +189,9 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         tr_vec = np.zeros(3)
         tr_vec[orient_ord[normal]] = translate - 5e-5*k/npatches
         yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
+        yp.implicit_plane.normal = np.array([.5,.5,.0])
         yp.implicit_plane.visible = False
-        mlab.outline(line_width=0.025)
+        #mlab.outline(line_width=0.025)
 
         
         # patch two
@@ -188,8 +200,10 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         tr_vec[orient_ord[normal]] = translate + 5e-5*k/npatches
         yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
         yp.implicit_plane.visible = False
-        mlab.outline(line_width=0.025)
+        #mlab.outline(line_width=0.025)
 
+    import pdb
+    pdb.set_trace()
     
     return 
 
