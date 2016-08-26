@@ -1,8 +1,10 @@
 import os,sys
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from mayavi import mlab
 import slice_io
-import pdb
+from tvtk.api import tvtk
 
 
 def plot_time_all(plot_specs_dict,var_num = 0):
@@ -23,12 +25,14 @@ def plot_time_all(plot_specs_dict,var_num = 0):
     plot_specs_dict['minval'][var_num] = minval
     plot_specs_dict['maxval'][var_num] = maxval
 
+    f_list = []
+
     for key,value in plot_specs_dict['time_view'].items():
         t = plot_specs_dict['t_ticks'][key]
         path = plot_specs_dict['path']
-        plot_time_instance(path,t,value,var_num,plot_specs_dict)
+        f_list.append(plot_time_instance(path,t,value,var_num,plot_specs_dict))
 
-    return
+    return f_list
 
 def compute_minmax(path,t,value,var_num,plot_specs_dict):
     num_eqn = int(plot_specs_dict['num_eqn'])
@@ -48,7 +52,7 @@ def compute_minmax(path,t,value,var_num,plot_specs_dict):
 def plot_time_instance(path,t,value,var_num,plot_specs_dict):
     # make one plot at fixed time with multiple slices
 
-    f = mlab.figure(size=(800,600))
+    f = mlab.figure(size=(2000,1500))
     file_list = value.split()
     num_eqn = int(plot_specs_dict['num_eqn'])
     
@@ -59,19 +63,21 @@ def plot_time_instance(path,t,value,var_num,plot_specs_dict):
     save_filename = 'test_output_' + str(t) + '.png'
     mlab.title('Solution at t=' + str(t) + '\n q ' + str(var_num+1),\
                 size=0.25)
-    #mlab.savefig(save_filename)
-    #mlab.outline()
     cube_range = [plot_specs_dict['domain'][0][0],  
                   plot_specs_dict['domain'][0][1],  
                   plot_specs_dict['domain'][1][0],  
                   plot_specs_dict['domain'][1][1],  
                   plot_specs_dict['domain'][2][0],  
                   plot_specs_dict['domain'][2][1]]
-    #pdb.set_trace()
     mlab.axes(extent = cube_range, line_width=3.0)
-    mlab.colorbar(orientation='vertical')
-    mlab.show()
-    return
+    ax = mlab.colorbar(orientation='vertical')
+    mlab.outline(line_width=0.02)
+    #f.scene.x_minus_view()
+
+    #f.scene._update_view(1, -1, 1, 0, 0, 0)
+    mlab.savefig(save_filename)
+    f.scene.close()
+    return None
 
 def permute_orientation(orient_real,vector):
     new_vector = []
@@ -91,9 +97,10 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
     orient_plane = {'x':'yz', 'y':'xz', 'z':'xy'}
     orient_real = orient_dict[normal]
     src_list = []
-    mesh_list = []
+    pts_list = []
     vprint('\t(plot_slice) working on: ' + file_name)
     npatches = len(patch_specs_list)
+    
     for k,patch_specs in enumerate(patch_specs_list):
         # load patch specs
         m1 = int(patch_specs[1])
@@ -118,17 +125,44 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         translate_lo = translate - 5e-5
         translate_hi = translate + 5e-5
 
+        translate_lo2 = translate - 8e-5
+        translate_hi2 = translate + 8e-5
+
         u = np.linspace(ulo,ulo + m1*d1,m1)
         v = np.linspace(vlo,vlo + m2*d2,m2)
         tr = np.linspace(translate_lo,translate_hi,2)
+
         grids = permute_orientation(orient_real,[u,v,tr]) 
         m_real = permute_orientation(orient_real,[m1,m2,1])
         x,y,z = np.meshgrid(grids[0],grids[1],grids[2],indexing='ij')
+
         q_sol = patch_array_list[k][var_num::num_eqn].reshape(m_real[0],m_real[1],m_real[2],order='F')
         q_sol = q_sol.repeat(2,axis=orient_ord[normal])
 
         objname = orient_plane[normal] + '_' + str(translate) + '_' + str(k) 
         src_list.append(mlab.pipeline.scalar_field(x,y,z,q_sol,name = objname))
+
+        #sg = tvtk.StructuredGrid(dimensions=x.shape, points=pts_list[k])
+        #tr2 = np.linspace(translate_lo2,translate_hi2,2)
+        for tr2val in [translate_lo2, translate_hi2]:
+            tr2 = np.array(tr2val)
+            grids = permute_orientation(orient_real,[u,v,tr2]) 
+            m_real = permute_orientation(orient_real,[m1,m2,1])
+            x,y,z = np.meshgrid(grids[0],grids[1],grids[2],indexing='ij')
+        
+            pts = np.empty(z.shape + (3,), dtype=float)
+            pts[..., 0] = x
+            pts[..., 1] = y
+            pts[..., 2] = z
+            pts = pts.transpose(2, 1, 0, 3).copy()
+            pts.shape = pts.size / 3, 3
+        
+            sg = tvtk.StructuredGrid(dimensions=x.shape, points=pts)
+            d = mlab.pipeline.add_dataset(sg)
+            g1 = mlab.pipeline.grid_plane(d, line_width=0.25)
+            g1.grid_plane.axis = normal
+
+
 
 
     color_choice = 'Spectral'
@@ -137,16 +171,26 @@ def plot_slice(path,file_name,f,var_num,num_eqn,minval,maxval):
         # plot two slices according to adaptive mesh level
         # patch one
         yp = mlab.pipeline.scalar_cut_plane(src, plane_orientation=axis_str,opacity=1.0,figure=f,vmin=minval,vmax=maxval,colormap=color_choice)
+
+        #yp = mlab.pipeline.image_plane_widget(src, plane_orientation=axis_str,opacity=0.5,figure=f,vmin=minval,vmax=maxval,colormap=color_choice)
+
+
         tr_vec = np.zeros(3)
         tr_vec[orient_ord[normal]] = translate - 5e-5*k/npatches
         yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
         yp.implicit_plane.visible = False
+        mlab.outline(line_width=0.025)
 
+        
         # patch two
         yp = mlab.pipeline.scalar_cut_plane(src, plane_orientation=axis_str,opacity=1.0,figure=f,vmin=minval,vmax=maxval,colormap=color_choice)
+        #yp = mlab.pipeline.image_plane_widget(src, plane_orientation=axis_str,opacity=1.0,figure=f,vmin=minval,vmax=maxval,colormap=color_choice)
         tr_vec[orient_ord[normal]] = translate + 5e-5*k/npatches
         yp.implicit_plane.origin = (tr_vec[0],tr_vec[1],tr_vec[2])
         yp.implicit_plane.visible = False
+        mlab.outline(line_width=0.025)
+
+    
     return 
 
 def slices_plot_spec(all_data_dict):
@@ -183,7 +227,6 @@ vprint('= done')
 
 
 plot_specs_dict = slices_plot_spec(all_data_dict)
+ax_list = plot_time_all(plot_specs_dict,0)
 
-#plot_time_all(plot_specs_dict, variable_number)
-plot_time_all(plot_specs_dict,0)
 
